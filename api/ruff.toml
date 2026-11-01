@@ -1,0 +1,9 @@
+line-length = 100
+
+[lint]
+# Basic errors (E, F) and sorted imports (I).
+select = ["E", "F", "I"]
+
+[lint.isort]
+# Our alembic/ folder has the same name as the alembic package; this keeps import sorting correct.
+known-third-party = ["alembic"]
