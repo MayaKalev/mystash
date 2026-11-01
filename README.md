@@ -2,7 +2,7 @@
 
 Paste a link and within seconds see it titled, summarized, categorized and tagged, then browse and filter everything you've saved.
 
-> **Status:** Week 1 of the MVP (foundations) is done: Docker setup, FastAPI, database schema and migrations, and sign-up and login. Saving links, the AI step and the frontend come next.
+> **Status:** Weeks 1–2 of the MVP are done: sign-up and login, and saving a link, which the worker downloads and extracts text from in the background. The AI summary and tags (Week 3) and the frontend (Week 4) come next.
 
 ## Run it locally
 
@@ -48,7 +48,16 @@ The tests use a real PostgreSQL database. By default they connect to `postgresql
 | POST | /auth/register | Create an account |
 | POST | /auth/login | Log in, returns a JWT |
 | GET | /auth/me | Current user (send `Authorization: Bearer <token>`) |
+| POST | /items | Save a link: `{"url": "https://..."}`. Returns the item with status `pending` |
 | GET | /health | Health check |
+
+## How saving a link works
+
+1. `POST /items` saves the link with status `pending` and puts a job on the Redis queue.
+2. The worker (`app/tasks.py`) picks up the job and sets the status to `processing`.
+3. It downloads the page: 10-second timeout, redirects followed, 5 MB limit, web pages only. If the download fails, it tries again, up to 3 times in total.
+4. It pulls out the main text with [trafilatura](https://trafilatura.readthedocs.io/), leaving out menus and footers. If there's no main text, it uses the page's description meta tag instead.
+5. The status becomes `done`, or `failed` with a readable `error_message`.
 
 ## Layout
 
@@ -75,6 +84,8 @@ The code is kept deliberately simple: plain functions, no async code and no clev
 
 - **Ordinary (synchronous) FastAPI and SQLAlchemy.** Easier to read and debug than async code, and fast enough for this app.
 - **RQ for background jobs.** The simplest Redis job queue for Python: a job is just a normal function.
+- **Retries are a plain loop in the job** rather than queue settings, so the whole flow is easy to follow in one file.
+- **Tests never use the internet.** Extraction is tested on saved HTML pages in `tests/pages/`, and downloads use httpx's fake network (`MockTransport`).
 - **Alembic for migrations**, so the database schema is versioned along with the code.
 - **Status and content type are plain text columns**, with the allowed values listed in `models.py`.
 - **Tag names are stored lowercase and are unique per user**; the database rejects duplicates.

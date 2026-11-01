@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, HttpUrl
 
 
 class RegisterRequest(BaseModel):
@@ -22,3 +22,17 @@ class UserOut(BaseModel):
     id: int
     email: str
     created_at: datetime
+
+
+class ItemCreate(BaseModel):
+    url: HttpUrl
+
+
+class ItemOut(BaseModel):
+    id: int
+    url: str
+    title: str | None
+    status: str
+    error_message: str | None
+    created_at: datetime
+    processed_at: datetime | None
