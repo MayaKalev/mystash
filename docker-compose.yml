@@ -1,0 +1,56 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: mystash
+      POSTGRES_PASSWORD: mystash
+      POSTGRES_DB: mystash
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mystash"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: ./api
+    environment: &app-env
+      DATABASE_URL: postgresql+asyncpg://mystash:mystash@db:5432/mystash
+      REDIS_URL: redis://redis:6379/0
+      # Local development only. Production gets a real secret from the host.
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-change-me-0123456789abcdef}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: ./api
+    command: ["arq", "app.worker.WorkerSettings"]
+    environment: *app-env
+    depends_on:
+      api:
+        condition: service_started
+      redis:
+        condition: service_healthy
+
+  # web: added in Week 4 (frontend).
+
+volumes:
+  pgdata:
