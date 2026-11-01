@@ -1,20 +1,10 @@
-from functools import lru_cache
+import os
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
+DATABASE_URL = os.getenv(
+    "DATABASE_URL", "postgresql+psycopg://mystash:mystash@localhost:5432/mystash"
+)
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
-
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
-
-    database_url: str = "postgresql+asyncpg://mystash:mystash@localhost:5432/mystash"
-    redis_url: str = "redis://localhost:6379/0"
-
-    # No default on purpose: the app refuses to start without a secret.
-    jwt_secret: str
-    jwt_algorithm: str = "HS256"
-    jwt_expire_minutes: int = 60 * 24 * 7
-
-
-@lru_cache
-def get_settings() -> Settings:
-    return Settings()
+# Used to sign login tokens. Must be set; there is no default on purpose.
+JWT_SECRET = os.environ["JWT_SECRET"]
+JWT_EXPIRE_DAYS = 7

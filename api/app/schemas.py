@@ -1,27 +1,16 @@
-import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field
 
 
 class RegisterRequest(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
-
-    @field_validator("email")
-    @classmethod
-    def lowercase_email(cls, v: str) -> str:
-        return v.lower()
+    password: str = Field(min_length=8)
 
 
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
-
-    @field_validator("email")
-    @classmethod
-    def lowercase_email(cls, v: str) -> str:
-        return v.lower()
 
 
 class TokenResponse(BaseModel):
@@ -30,8 +19,6 @@ class TokenResponse(BaseModel):
 
 
 class UserOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: uuid.UUID
+    id: int
     email: str
     created_at: datetime

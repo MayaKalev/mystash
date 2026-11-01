@@ -1,36 +1,36 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
-from app.deps import CurrentUser, SessionDep
+from app.auth import create_token, get_current_user, hash_password, verify_password
+from app.database import get_db
 from app.models import User
 from app.schemas import LoginRequest, RegisterRequest, TokenResponse, UserOut
-from app.security import create_access_token, hash_password, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-async def register(body: RegisterRequest, session: SessionDep) -> User:
-    user = User(email=body.email, password_hash=hash_password(body.password))
-    session.add(user)
-    try:
-        await session.commit()
-    except IntegrityError:
-        await session.rollback()
-        raise HTTPException(status.HTTP_409_CONFLICT, detail="Email already registered") from None
-    await session.refresh(user)
+@router.post("/register", response_model=UserOut, status_code=201)
+def register(body: RegisterRequest, db: Session = Depends(get_db)):
+    email = body.email.lower()
+    if db.scalar(select(User).where(User.email == email)):
+        raise HTTPException(status_code=409, detail="Email already registered")
+
+    user = User(email=email, password_hash=hash_password(body.password))
+    db.add(user)
+    db.commit()
+    db.refresh(user)
     return user
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(body: LoginRequest, session: SessionDep) -> TokenResponse:
-    user = await session.scalar(select(User).where(User.email == body.email))
-    if not verify_password(body.password, user.password_hash if user else None) or user is None:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
-    return TokenResponse(access_token=create_access_token(user.id))
+def login(body: LoginRequest, db: Session = Depends(get_db)):
+    user = db.scalar(select(User).where(User.email == body.email.lower()))
+    if user is None or not verify_password(body.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    return TokenResponse(access_token=create_token(user.id))
 
 
 @router.get("/me", response_model=UserOut)
-async def me(user: CurrentUser) -> User:
+def me(user: User = Depends(get_current_user)):
     return user

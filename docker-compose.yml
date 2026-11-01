@@ -10,47 +10,41 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mystash"]
+      test: ["CMD", "pg_isready", "-U", "mystash"]
       interval: 2s
-      timeout: 3s
       retries: 20
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 2s
-      timeout: 3s
-      retries: 20
 
   api:
     build: ./api
-    environment: &app-env
-      DATABASE_URL: postgresql+asyncpg://mystash:mystash@db:5432/mystash
+    environment:
+      DATABASE_URL: postgresql+psycopg://mystash:mystash@db:5432/mystash
       REDIS_URL: redis://redis:6379/0
-      # Local development only. Production gets a real secret from the host.
-      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-change-me-0123456789abcdef}
+      JWT_SECRET: dev-secret-at-least-32-characters-long
     ports:
       - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
       redis:
-        condition: service_healthy
+        condition: service_started
 
   worker:
     build: ./api
-    command: ["arq", "app.worker.WorkerSettings"]
-    environment: *app-env
+    command: rq worker --url redis://redis:6379/0
+    environment:
+      DATABASE_URL: postgresql+psycopg://mystash:mystash@db:5432/mystash
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: dev-secret-at-least-32-characters-long
     depends_on:
-      api:
-        condition: service_started
-      redis:
-        condition: service_healthy
+      - api
+      - redis
 
-  # web: added in Week 4 (frontend).
+  # web: the frontend is added in Week 4.
 
 volumes:
   pgdata:

@@ -1,8 +1,6 @@
 name: CI
 
-on:
-  push:
-  pull_request:
+on: [push, pull_request]
 
 jobs:
   api:
@@ -11,6 +9,7 @@ jobs:
       run:
         working-directory: api
 
+    # A real PostgreSQL database for the tests.
     services:
       postgres:
         image: pgvector/pgvector:pg16
@@ -20,21 +19,17 @@ jobs:
           POSTGRES_DB: mystash_test
         ports:
           - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U mystash"
-          --health-interval 2s
-          --health-timeout 3s
-          --health-retries 20
+        options: --health-cmd "pg_isready -U mystash" --health-interval 2s --health-retries 20
 
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: uv sync --frozen
+      - run: pip install -r requirements-dev.txt
       - name: Lint
-        run: uv run ruff check . && uv run ruff format --check .
+        run: ruff check . && ruff format --check .
       - name: Type check
-        run: uv run mypy app
+        run: mypy app --ignore-missing-imports
       - name: Tests
-        run: uv run pytest -q
+        run: pytest
