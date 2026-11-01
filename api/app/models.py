@@ -25,7 +25,7 @@ class Item(Base):
     url: Mapped[str] = mapped_column(Text)
     title: Mapped[str | None] = mapped_column(Text)
     summary: Mapped[str | None] = mapped_column(Text)
-    # One of: article, video, repo, tool, other
+    # One of: article, video, repo, tool, shop, restaurant, course, other
     content_type: Mapped[str | None] = mapped_column(String(20))
     extracted_text: Mapped[str | None] = mapped_column(Text)
     # One of: pending, processing, done, failed

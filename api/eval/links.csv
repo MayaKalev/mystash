@@ -1,1 +1,11 @@
 url,content_type,tags
+https://www.zara.com/il/,shop,fashion;clothing;shopping
+https://www.terminalx.com/,shop,fashion;brands;online-shopping
+https://japanika.net/menu,restaurant,sushi;japanese-food;menu
+https://japanika.net/branches/,restaurant,restaurants;locations;japanika
+https://www.coursera.org/courses?query=python,course,python;programming;education
+https://www.coursera.org/courses?query=Python+for+beginners,course,python;beginners;coding
+https://github.com/encode/httpx,repo,python;http-client;programming
+https://www.canva.com/,tool,design;graphics;productivity
+https://docs.python.org/3/tutorial/,article,python;tutorial;programming
+https://www.youtube.com/watch?v=dQw4w9WgXcQ,video,music;pop;music-video

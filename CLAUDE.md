@@ -70,7 +70,8 @@ docker-compose.yml  db, redis, api, worker
 ```
 
 Data rules: item `status` is `pending`, `processing`, `done` or `failed`. `content_type` is
-`article`, `video`, `repo`, `tool` or `other`. Tag names are lowercase and unique per user.
+`article`, `video`, `repo`, `tool`, `shop`, `restaurant`, `course` or `other`. Summaries and tags
+are always in English. Tag names are lowercase and unique per user.
 `item_tags.source` is `ai` or `user`.
 
 ## Commands

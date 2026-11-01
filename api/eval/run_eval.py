@@ -11,7 +11,7 @@ import csv
 from pathlib import Path
 
 from app.ai import AIError, analyze, normalize_tags
-from app.tasks import FetchError, extract, fetch_html
+from app.tasks import BlockedError, FetchError, extract, fetch_html
 
 LINKS_FILE = Path(__file__).parent / "links.csv"
 
@@ -34,7 +34,10 @@ def main() -> None:
         expected_tags = normalize_tags(link["tags"].split(";"))
 
         try:
-            title, text = extract(fetch_html(url))
+            try:
+                title, text = extract(fetch_html(url))
+            except BlockedError:
+                title, text = None, None  # Same as the worker: use the link alone.
             analysis = analyze(url, title, text, [])
         except (FetchError, AIError) as e:
             print(f"SKIPPED {url}: {e}")
