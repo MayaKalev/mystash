@@ -19,10 +19,7 @@ end to end, not a big unfinished one.
 - **One branch and one pull request per week of the plan.** Branches are named `mystash-v1`,
   `mystash-v1-2`, `mystash-v1-3`, and so on. Wait until Maya has merged one week before starting the
   next, and start the next branch from the updated `main`.
-- **Never touch `~/Documents/projects/mystash` on Maya's Mac.** That folder holds her own earlier,
-  uncommitted work. For checking things on her Mac, use a separate clone such as
-  `~/Documents/projects/mystash-check`.
-- Explain things in plain language and give commands she can copy, one per block.
+
 
 ## Plan and status
 
