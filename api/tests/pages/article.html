@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>How Python Virtual Environments Work</title>
+  <meta name="description" content="A short guide to Python virtual environments.">
+</head>
+<body>
+  <nav><a href="/">Home</a> | <a href="/blog">Blog</a> | <a href="/about">About</a></nav>
+  <article>
+    <h1>How Python Virtual Environments Work</h1>
+    <p>A virtual environment is a folder that holds its own copy of the Python interpreter and its own
+    set of installed packages. When you activate it, the python and pip commands in your terminal use
+    that folder instead of the Python installed on your system.</p>
+    <p>This matters because different projects often need different versions of the same package. One
+    project might need an old version of a web framework while another needs the newest one. Without
+    virtual environments, installing one would break the other.</p>
+    <p>To create one, run python -m venv .venv inside your project folder. Then activate it with
+    source .venv/bin/activate on macOS and Linux. Anything you install with pip now goes into the
+    .venv folder, and you can delete that folder at any time to start fresh.</p>
+    <p>Most teams also keep a requirements.txt file that lists every package the project needs, so a
+    new developer can recreate the same environment with a single pip install command.</p>
+  </article>
+  <footer>Copyright 2026. All rights reserved. Subscribe to our newsletter.</footer>
+</body>
+</html>
