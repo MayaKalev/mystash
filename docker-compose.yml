@@ -40,6 +40,8 @@ services:
       DATABASE_URL: postgresql+psycopg://mystash:mystash@db:5432/mystash
       REDIS_URL: redis://redis:6379/0
       JWT_SECRET: dev-secret-at-least-32-characters-long
+      # Read from your shell or a root .env file, so the key is never in this file.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     depends_on:
       - api
       - redis

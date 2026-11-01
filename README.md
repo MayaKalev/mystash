@@ -2,13 +2,14 @@
 
 Paste a link and within seconds see it titled, summarized, categorized and tagged, then browse and filter everything you've saved.
 
-> **Status:** Weeks 1–2 of the MVP are done: sign-up and login, and saving a link, which the worker downloads and extracts text from in the background. The AI summary and tags (Week 3) and the frontend (Week 4) come next.
+> **Status:** Weeks 1–3 of the MVP are built: sign-up and login, and saving a link, which the worker downloads, extracts and sends to OpenAI for a title, summary, type and tags. The frontend (Week 4) comes next.
 
 ## Run it locally
 
-You need Docker.
+You need Docker and an [OpenAI API key](https://platform.openai.com/api-keys). Never commit the key.
 
 ```bash
+export OPENAI_API_KEY=your-key
 docker compose up --build
 ```
 
@@ -39,7 +40,13 @@ mypy app --ignore-missing-imports
 pytest
 ```
 
-The tests use a real PostgreSQL database. By default they connect to `postgresql+psycopg://mystash:mystash@localhost:5432/mystash_test` (create that database first), and you can override that with `TEST_DATABASE_URL`. **The test database is wiped on every run.**
+The tests use a real PostgreSQL database. By default they connect to `postgresql+psycopg://mystash:mystash@localhost:5432/mystash_test` (create that database first), and you can override that with `TEST_DATABASE_URL`. **The test database is wiped on every run.** They don't need an OpenAI key, because the AI is mocked.
+
+To score the AI against links you tagged by hand, add them to `api/eval/links.csv` and run this from `api/` (it calls the real API, so it costs a little):
+
+```bash
+python -m eval.run_eval
+```
 
 ## API so far
 
@@ -49,15 +56,20 @@ The tests use a real PostgreSQL database. By default they connect to `postgresql
 | POST | /auth/login | Log in, returns a JWT |
 | GET | /auth/me | Current user (send `Authorization: Bearer <token>`) |
 | POST | /items | Save a link: `{"url": "https://..."}`. Returns the item with status `pending` |
+| GET | /items | Your saved links, newest first |
+| GET | /items/{id} | One saved link, with its summary, type and tags |
 | GET | /health | Health check |
 
 ## How saving a link works
 
 1. `POST /items` saves the link with status `pending` and puts a job on the Redis queue.
 2. The worker (`app/tasks.py`) picks up the job and sets the status to `processing`.
-3. It downloads the page: 10-second timeout, redirects followed, 5 MB limit, web pages only. If the download fails, it tries again, up to 3 times in total.
+3. It downloads the page: 10-second timeout, redirects followed, 5 MB limit, web pages only. If the download fails, it tries again, up to 3 times in total, unless retrying can't help (such as a 404).
 4. It pulls out the main text with [trafilatura](https://trafilatura.readthedocs.io/), leaving out menus and footers. If there's no main text, it uses the page's description meta tag instead.
-5. The status becomes `done`, or `failed` with a readable `error_message`.
+5. It sends the text to OpenAI (`app/ai.py`), which returns a title, summary, content type and tags. Tags are made lowercase, and the user's existing tags are reused.
+6. The status becomes `done`, or `failed` with a readable `error_message`. If only the AI step fails, the extracted text is kept.
+
+If a site blocks us (401 or 403), or a page has almost no text, the AI works from what little it has, and the summary starts with "Based only on the link:". A dead link such as a 404 still fails.
 
 ## Layout
 
@@ -72,7 +84,9 @@ api/                FastAPI app, worker, Alembic migrations, tests
     auth.py         password hashing and login tokens
     routers/        the API endpoints
     tasks.py        background jobs for the worker
+    ai.py           asks OpenAI for the title, summary, type and tags
   alembic/versions/ database migrations
+  eval/             scores the AI against hand-tagged links
 web/                frontend (Week 4)
 docker-compose.yml  local stack
 .github/workflows/  CI: Ruff, mypy, pytest on every push
@@ -86,6 +100,7 @@ The code is kept deliberately simple: plain functions, no async code and no clev
 - **RQ for background jobs.** The simplest Redis job queue for Python: a job is just a normal function.
 - **Retries are a plain loop in the job** rather than queue settings, so the whole flow is easy to follow in one file.
 - **Tests never use the internet.** Extraction is tested on saved HTML pages in `tests/pages/`, and downloads use httpx's fake network (`MockTransport`).
+- **OpenAI with structured output.** `gpt-6-luna` is the default because it's the cheapest current model that isn't scheduled for shutdown. Change it with `OPENAI_MODEL`. The answer is checked against a schema, so the code never has to parse free text.
 - **Alembic for migrations**, so the database schema is versioned along with the code.
 - **Status and content type are plain text columns**, with the allowed values listed in `models.py`.
 - **Tag names are stored lowercase and are unique per user**; the database rejects duplicates.
