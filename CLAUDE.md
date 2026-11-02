@@ -36,7 +36,6 @@ integrations, mobile. pgvector is installed now only so v2 semantic search needs
 
 Known follow-ups:
 - Before deploying: block URLs that point to the server's own network, including through redirects.
-- The full flow through Docker, Redis and the worker hasn't been run with real OpenAI calls yet.
 - `api/eval/links.csv` still needs Maya's 30–50 hand-tagged links.
 - If Redis is down, `POST /items` returns a 500 and the item stays `pending` forever.
 - If the worker crashes mid-job, the item stays `processing` forever.
@@ -80,6 +79,16 @@ Run the whole stack:
 
 ```bash
 docker compose up --build
+```
+
+Maya's Mac (macOS 13, Intel) can't run Docker Desktop, so Docker runs through Colima, installed
+from the official downloads into `~/.local/bin`. Start it before `docker compose` and stop it after:
+
+```bash
+colima start --cpu 2 --memory 3
+```
+```bash
+colima stop
 ```
 
 API checks, from `api/` with the virtual environment active (the same checks CI runs):
