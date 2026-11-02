@@ -178,9 +178,15 @@ def analyze_item(db: Session, item: Item) -> None:
 def save_ai_tags(db: Session, item: Item, names: list[str]) -> None:
     """Attach tags to the item, reusing the user's existing tags where they match."""
     for name in normalize_tags(names):
-        tag = db.scalar(select(Tag).where(Tag.user_id == item.user_id, Tag.name == name))
-        if tag is None:
-            tag = Tag(user_id=item.user_id, name=name)
-            db.add(tag)
-            db.flush()  # Gives the new tag its id.
+        tag = get_or_create_tag(db, item.user_id, name)
         db.add(ItemTag(item_id=item.id, tag_id=tag.id, source="ai"))
+
+
+def get_or_create_tag(db: Session, user_id: int, name: str) -> Tag:
+    """Return the user's tag with this name, creating it if it doesn't exist yet."""
+    tag = db.scalar(select(Tag).where(Tag.user_id == user_id, Tag.name == name))
+    if tag is None:
+        tag = Tag(user_id=user_id, name=name)
+        db.add(tag)
+        db.flush()  # Gives the new tag its id.
+    return tag

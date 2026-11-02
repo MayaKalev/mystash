@@ -27,8 +27,8 @@ end to end, not a big unfinished one.
 | --- | --- | --- |
 | 1 | Foundations: repo layout, Docker, FastAPI, models, Alembic, auth (JWT), CI | Merged (MayaKalev/mystash#1) |
 | 2 | Ingestion: `POST /items`, queue + worker, fetching, text extraction, retries | Merged (MayaKalev/mystash#2) |
-| 3 | AI tagging: LLM with structured output, tag normalization and reuse, mocked in tests, eval set of 30–50 hand-tagged URLs | PR open (`mystash-v1-3`) |
-| 4 | Frontend (`/web`): login and signup, save a link, item list with live status and filters, item detail with tag editing, delete | Not started |
+| 3 | AI tagging: LLM with structured output, tag normalization and reuse, mocked in tests, eval set of 30–50 hand-tagged URLs | Merged (MayaKalev/mystash#4) |
+| 4 | Frontend (`/web`): login and signup, save a link, item list with live status and filters, item detail with tag editing, delete | PR open (`mystash-v1-4`) |
 | 5 | Deploy (API, worker, managed Postgres and Redis, frontend), Sentry, rate limiting, README polish | Not started |
 
 Out of scope for the MVP: screenshots/OCR, semantic search, browser extension, collections,
@@ -40,6 +40,9 @@ Known follow-ups:
 - If Redis is down, `POST /items` returns a 500 and the item stays `pending` forever.
 - If the worker crashes mid-job, the item stays `processing` forever.
 - `created_at` is required in `models.py` but nullable in the migration.
+- The website has no automated tests yet; it was checked by hand in a browser. CI only lints and
+  builds it.
+- `web` runs Vite's development server. Deploying needs a built version (`npm run build`).
 
 ## Stack and layout
 
@@ -47,6 +50,10 @@ FastAPI + SQLAlchemy 2 (sync, psycopg) + Alembic, PostgreSQL 16 with pgvector, R
 background jobs, OpenAI (`gpt-6-luna`, Responses API with structured output) for the AI step, pip
 with pinned `requirements.txt`. Python 3.12 in Docker. `OPENAI_API_KEY` comes from the environment
 and is never committed or pasted into chat.
+
+The website is React + Vite in plain JavaScript (no TypeScript), with React Router and plain CSS.
+Node 24, exact versions pinned in `package.json`. While an item is `pending` or `processing`,
+pages ask the API again every 2 seconds.
 
 ```
 api/
@@ -60,12 +67,15 @@ api/
     queue.py        the RQ queue
     tasks.py        worker jobs (process_item: fetch, extract, AI, save)
     ai.py           OpenAI call (analyze) and tag cleanup (normalize_tags)
-    routers/        endpoints (auth.py, items.py)
+    routers/        endpoints (auth.py, items.py, tags.py)
   alembic/versions/ migrations; add a new one for every schema change
   tests/            pytest; tests/pages/ holds saved HTML pages
   eval/             run_eval.py scores the AI against links.csv (calls the real API)
-web/                frontend (Week 4)
-docker-compose.yml  db, redis, api, worker
+web/
+  src/api.js        every call to the API, and the saved login token
+  src/pages/        AuthPage (login and sign-up), ItemsPage (list), ItemPage (detail)
+  src/components/   small pieces shared by pages
+docker-compose.yml  db, redis, api, worker, web
 ```
 
 Data rules: item `status` is `pending`, `processing`, `done` or `failed`. `content_type` is
@@ -106,6 +116,12 @@ pytest
 Tests need a PostgreSQL database at
 `postgresql+psycopg://mystash:mystash@localhost:5432/mystash_test` (override with
 `TEST_DATABASE_URL`). The tables are dropped and recreated for every test.
+
+Website checks, from `web/` (the same checks CI runs):
+
+```bash
+npm run lint && npm run build
+```
 
 ## Testing rules
 

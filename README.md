@@ -2,7 +2,7 @@
 
 Paste a link and within seconds see it titled, summarized, categorized and tagged, then browse and filter everything you've saved.
 
-> **Status:** Weeks 1–3 of the MVP are built: sign-up and login, and saving a link, which the worker downloads, extracts and sends to OpenAI for a title, summary, type and tags. The frontend (Week 4) comes next.
+> **Status:** Weeks 1–4 of the MVP are built: a website where you sign up, paste a link and watch it get a title, summary, type and tags, then filter your links, edit tags and delete links. Deployment (Week 5) comes next.
 
 ## Run it locally
 
@@ -13,8 +13,13 @@ export OPENAI_API_KEY=your-key
 docker compose up --build
 ```
 
+- Website: http://localhost:5173
 - API: http://localhost:8000 (interactive docs at http://localhost:8000/docs)
-- Services: `db` (PostgreSQL 16 + pgvector), `redis`, `api` (FastAPI), `worker` (RQ). The `web` frontend is added in Week 4.
+- Services: `db` (PostgreSQL 16 + pgvector), `redis`, `api` (FastAPI), `worker` (RQ), `web` (React + Vite).
+
+Changes to files in `web/src/` show up in the browser straight away, without rebuilding.
+
+On a Mac that can't run Docker Desktop (such as macOS 13), [Colima](https://colima.run) works instead: run `colima start --cpu 2 --memory 3` first, then use `docker compose` as normal.
 
 Migrations run automatically when the API container starts.
 
@@ -48,7 +53,18 @@ To score the AI against links you tagged by hand, add them to `api/eval/links.cs
 python -m eval.run_eval
 ```
 
-## API so far
+## Develop the website without Docker
+
+With the API running, from `web/` (needs Node.js 24):
+
+```bash
+npm install
+npm run dev
+```
+
+Checks (the same ones CI runs): `npm run lint` and `npm run build`. The website calls the API at `http://localhost:8000` unless `VITE_API_URL` says otherwise, and the API only accepts calls from the addresses in `CORS_ORIGINS` (default `http://localhost:5173`).
+
+## API
 
 | Method | Path | Purpose |
 | --- | --- | --- |
@@ -56,8 +72,11 @@ python -m eval.run_eval
 | POST | /auth/login | Log in, returns a JWT |
 | GET | /auth/me | Current user (send `Authorization: Bearer <token>`) |
 | POST | /items | Save a link: `{"url": "https://..."}`. Returns the item with status `pending` |
-| GET | /items | Your saved links, newest first |
+| GET | /items | Your saved links, newest first. Optional filters: `?status=`, `?content_type=`, `?tag=` |
 | GET | /items/{id} | One saved link, with its summary, type and tags |
+| PUT | /items/{id}/tags | Replace the link's tags: `{"tags": ["python", "to read"]}`. Not allowed while it's being processed |
+| DELETE | /items/{id} | Delete a saved link |
+| GET | /tags | Your tags that are on at least one link, A to Z |
 | GET | /health | Health check |
 
 ## How saving a link works
@@ -87,9 +106,15 @@ api/                FastAPI app, worker, Alembic migrations, tests
     ai.py           asks OpenAI for the title, summary, type and tags
   alembic/versions/ database migrations
   eval/             scores the AI against hand-tagged links
-web/                frontend (Week 4)
+web/                React website
+  src/
+    main.jsx        starts React and the router
+    App.jsx         the header and the list of pages
+    api.js          every call to the API, and the saved login token
+    pages/          login and sign-up, the list of links, one link's details
+    components/     small pieces used on more than one page
 docker-compose.yml  local stack
-.github/workflows/  CI: Ruff, mypy, pytest on every push
+.github/workflows/  CI: Ruff, mypy and pytest for the API; ESLint and a build for the website
 ```
 
 ## Technical decisions
@@ -105,4 +130,8 @@ The code is kept deliberately simple: plain functions, no async code and no clev
 - **Status and content type are plain text columns**, with the allowed values listed in `models.py`.
 - **Tag names are stored lowercase and are unique per user**; the database rejects duplicates.
 - **Passwords are hashed with Argon2** (pwdlib), and login returns a JWT that's valid for 7 days.
+- **React + Vite in plain JavaScript** for the website, with React Router for the pages and plain CSS. No TypeScript or UI library, so there's less to learn at once.
+- **Live status by asking again.** While any link is still `pending` or `processing`, the page asks the API every 2 seconds. Simpler than WebSockets, and it stops once everything is finished.
+- **The login token is kept in the browser's `localStorage`**, so you stay logged in. If the API says the token is no longer valid, the website forgets it and goes back to the login page.
+- **Tag edits keep where a tag came from:** an AI tag you keep stays `ai`, and tags you add are saved as `user`.
 - **pgvector is enabled now** so the v2 semantic search needs no database changes.
