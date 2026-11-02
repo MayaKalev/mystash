@@ -28,10 +28,17 @@ class ItemCreate(BaseModel):
     url: HttpUrl
 
 
+class TagOut(BaseModel):
+    name: str
+
+
 class ItemOut(BaseModel):
     id: int
     url: str
     title: str | None
+    summary: str | None
+    content_type: str | None
+    tags: list[TagOut]
     status: str
     error_message: str | None
     created_at: datetime

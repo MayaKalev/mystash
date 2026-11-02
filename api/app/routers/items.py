@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
@@ -22,4 +23,21 @@ def create_item(
     db.refresh(item)
 
     queue.enqueue(process_item, item.id)
+    return item
+
+
+@router.get("", response_model=list[ItemOut])
+def list_items(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """The user's saved links, newest first."""
+    return db.scalars(
+        select(Item).where(Item.user_id == user.id).order_by(Item.created_at.desc(), Item.id.desc())
+    ).all()
+
+
+@router.get("/{item_id}", response_model=ItemOut)
+def get_item(item_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    item = db.get(Item, item_id)
+    # Another user's item gets the same reply, so nobody can tell which ids exist.
+    if item is None or item.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Item not found")
     return item

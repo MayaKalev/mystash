@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, String, Text, UniqueConstraint, func
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
@@ -25,7 +25,7 @@ class Item(Base):
     url: Mapped[str] = mapped_column(Text)
     title: Mapped[str | None] = mapped_column(Text)
     summary: Mapped[str | None] = mapped_column(Text)
-    # One of: article, video, repo, tool, other
+    # One of: article, video, repo, tool, shop, restaurant, course, other
     content_type: Mapped[str | None] = mapped_column(String(20))
     extracted_text: Mapped[str | None] = mapped_column(Text)
     # One of: pending, processing, done, failed
@@ -33,6 +33,12 @@ class Item(Base):
     error_message: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    # For reading only; tags are added through ItemTag. "selectin" loads the tags of a
+    # whole list of items in one query instead of one query per item.
+    tags: Mapped[list["Tag"]] = relationship(
+        secondary="item_tags", order_by="Tag.name", viewonly=True, lazy="selectin"
+    )
 
 
 class Tag(Base):
