@@ -46,7 +46,17 @@ services:
       - api
       - redis
 
-  # web: the frontend is added in Week 4.
+  web:
+    build: ./web
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_POLLING: "true"
+    volumes:
+      # Code changes show up in the browser right away, without rebuilding.
+      - ./web/src:/app/src
+    depends_on:
+      - api
 
 volumes:
   pgdata:

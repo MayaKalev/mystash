@@ -85,8 +85,8 @@ def analyze(url: str, title: str | None, text: str | None, existing_tags: list[s
     return analysis
 
 
-def normalize_tags(names: list[str]) -> list[str]:
-    """Make tags lowercase and tidy, drop empty or repeated ones, and keep at most MAX_TAGS.
+def normalize_tags(names: list[str], limit: int = MAX_TAGS) -> list[str]:
+    """Make tags lowercase and tidy, drop empty or repeated ones, and keep at most `limit`.
 
     Hyphens become spaces so "http-client" and "http client" are one tag.
     """
@@ -95,4 +95,4 @@ def normalize_tags(names: list[str]) -> list[str]:
         tag = " ".join(name.lower().replace("-", " ").split())[:MAX_TAG_LENGTH]
         if tag and tag not in tags:
             tags.append(tag)
-    return tags[:MAX_TAGS]
+    return tags[:limit]

@@ -32,6 +32,10 @@ class TagOut(BaseModel):
     name: str
 
 
+class TagsUpdate(BaseModel):
+    tags: list[str]
+
+
 class ItemOut(BaseModel):
     id: int
     url: str

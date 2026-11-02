@@ -106,3 +106,7 @@ def test_normalize_tags_treats_hyphens_as_spaces():
 def test_normalize_tags_limits_count_and_length():
     assert len(ai.normalize_tags([f"tag{n}" for n in range(10)])) == ai.MAX_TAGS
     assert len(ai.normalize_tags(["x" * 100])[0]) == ai.MAX_TAG_LENGTH
+
+
+def test_normalize_tags_can_allow_more():
+    assert len(ai.normalize_tags([f"tag{n}" for n in range(10)], limit=8)) == 8
