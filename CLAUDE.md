@@ -27,7 +27,7 @@ end to end, not a big unfinished one.
 | --- | --- | --- |
 | 1 | Foundations: repo layout, Docker, FastAPI, models, Alembic, auth (JWT), CI | Merged (MayaKalev/mystash#1) |
 | 2 | Ingestion: `POST /items`, queue + worker, fetching, text extraction, retries | Merged (MayaKalev/mystash#2) |
-| 3 | AI tagging: LLM with structured output, tag normalization and reuse, mocked in tests, eval set of 30–50 hand-tagged URLs | PR open (`mystash-v1-3`); eval links still needed |
+| 3 | AI tagging: LLM with structured output, tag normalization and reuse, mocked in tests, eval set of 30–50 hand-tagged URLs | PR open (`mystash-v1-3`) |
 | 4 | Frontend (`/web`): login and signup, save a link, item list with live status and filters, item detail with tag editing, delete | Not started |
 | 5 | Deploy (API, worker, managed Postgres and Redis, frontend), Sentry, rate limiting, README polish | Not started |
 
@@ -36,7 +36,7 @@ integrations, mobile. pgvector is installed now only so v2 semantic search needs
 
 Known follow-ups:
 - Before deploying: block URLs that point to the server's own network, including through redirects.
-- `api/eval/links.csv` still needs Maya's 30–50 hand-tagged links.
+- AP News returns almost no text, so its articles get a useless "no headline available" summary.
 - If Redis is down, `POST /items` returns a 500 and the item stays `pending` forever.
 - If the worker crashes mid-job, the item stays `processing` forever.
 - `created_at` is required in `models.py` but nullable in the migration.
